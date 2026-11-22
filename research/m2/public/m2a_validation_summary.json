@@ -1,0 +1,36 @@
+{
+  "work_item_id": "WO-M2-RESEARCH-001",
+  "publication_scope": "M2-A validation methods and aggregate evidence only",
+  "source_policy": {
+    "local_source_trust": "ACCEPTED_BY_STUDENT",
+    "official_chain_of_custody_required": false
+  },
+  "source_sha256": {
+    "train_FD001.txt": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8",
+    "test_FD001.txt": "3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851",
+    "RUL_FD001.txt": "a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca"
+  },
+  "measured_shape": {
+    "train": {"rows": 20631, "columns": 26, "units": 100, "cycle_min": 1, "cycle_max": 362},
+    "test": {"rows": 13096, "columns": 26, "units": 100, "cycle_min": 1, "cycle_max": 303},
+    "rul": {"rows": 100, "columns": 1, "mapping": "physical line N maps to Test Unit N"}
+  },
+  "schema": {"unit_fields": 1, "cycle_fields": 1, "operational_settings": 3, "sensors": 21},
+  "validation": {
+    "schema": "PASS",
+    "raw_index": "PASS",
+    "rul_mapping": "PASS",
+    "unit_cycle": "PASS",
+    "settings": "PASS",
+    "sensors": "PASS",
+    "failure_count": 0,
+    "existing_tests_passed": 6
+  },
+  "phase_status": {
+    "data_quality_summary": "NOT_COMPLETED",
+    "sensor_trend_analysis": "NOT_COMPLETED",
+    "fd001_data_contract": "NOT_COMPLETED",
+    "m2_gate": "PENDING_MAIN_REVIEW"
+  },
+  "raw_data_included": false
+}
