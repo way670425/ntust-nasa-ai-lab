@@ -115,3 +115,38 @@ SYNTHETIC 與 NASA_FD001 必須明確區分。
 - 任務要求超出本工作單
 
 停止後必須回報 STUDENT-MAIN。
+
+## Single Main Sequential Development
+
+1. 專案採單一 main 分支、循序開發。
+   同一時間只允許一個 Worker 執行。
+
+2. 所有 Brain 派工前，必須讀取
+   GitHub main 最新 AGENTS.md。
+
+3. 所有 Worker 開發前，必須同步
+   最新 main 並遵守工作單授權範圍。
+
+4. Worker 完成後，必須執行測試、
+   Commit 並 Push 成果至 GitHub main。
+
+5. 所屬 Brain 必須從 GitHub 實際讀取
+   Commit、檔案及測試證據，
+   確認正確後才能回報 PASS。
+
+6. 前一項工作尚未經 Brain Review
+   與 MAIN 授權，下一個 Worker 不得開始。
+
+7. MAIN Own Worker 負責維護本地整合環境，
+   確保本地專案資料夾保有已核准的
+   Research 與 Web 成果供網站測試。
+
+8. NASA FD001 原始資料保持本地唯讀，
+   不得上傳 GitHub。
+
+9. 發現錯誤時，必須建立新的修正 Commit，
+   禁止 Force Push 或覆寫 Git 歷史。
+
+10. GitHub 無法存取、Push 失敗或
+    Brain 無法驗證成果時，
+    必須回報 BLOCKED。
