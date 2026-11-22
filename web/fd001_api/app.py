@@ -15,6 +15,52 @@ def _error(code: str, message: str, query: dict[str, object] | None = None) -> d
     return {"error": {"code": code, "message": message, "query": query or {}}}
 
 
+def _observation_schema() -> list[dict[str, object]]:
+    fields = [
+        {
+            "name": "unit_id",
+            "data_type": "integer",
+            "nullable": False,
+            "source_column_position": 1,
+            "query_semantics": "Positive split-scoped engine identifier.",
+        },
+        {
+            "name": "cycle",
+            "data_type": "integer",
+            "nullable": False,
+            "source_column_position": 2,
+            "query_semantics": (
+                "Positive contiguous observation sequence beginning at 1 within each Unit."
+            ),
+        },
+    ]
+    fields.extend(
+        {
+            "name": f"setting_{number}",
+            "data_type": "number",
+            "nullable": False,
+            "source_column_position": number + 2,
+            "query_semantics": (
+                "Operating setting channel with source-defined or unspecified physical units."
+            ),
+        }
+        for number in range(1, 4)
+    )
+    fields.extend(
+        {
+            "name": f"sensor_{number}",
+            "data_type": "number",
+            "nullable": False,
+            "source_column_position": number + 5,
+            "query_semantics": (
+                "Sensor channel with source-defined or unspecified physical units."
+            ),
+        }
+        for number in range(1, 22)
+    )
+    return fields
+
+
 class FD001RequestHandler(BaseHTTPRequestHandler):
     dataset: FD001Dataset
     server_version = "FD001ReadOnlyAPI/1.0"
@@ -56,15 +102,37 @@ class FD001RequestHandler(BaseHTTPRequestHandler):
         assert query is not None
 
         if parsed.path == "/api/health":
+            if not self._allow_parameters(query, set()):
+                return
             self._health()
         elif parsed.path == "/api/catalog":
+            if not self._allow_parameters(query, set()):
+                return
             self._catalog()
         elif parsed.path == "/api/units":
+            if not self._allow_parameters(query, {"split"}):
+                return
             self._units(query)
         elif parsed.path == "/api/history":
+            if not self._allow_parameters(query, {"split", "unit", "sensor", "start", "end"}):
+                return
             self._history(query)
         else:
             self._send(HTTPStatus.NOT_FOUND, _error("NOT_FOUND", "Endpoint not found"))
+
+    def _allow_parameters(self, query: dict[str, str], allowed: set[str]) -> bool:
+        unknown = sorted(set(query) - allowed)
+        if not unknown:
+            return True
+        self._send(
+            HTTPStatus.BAD_REQUEST,
+            _error(
+                "INVALID_QUERY_VALUE",
+                f"Unknown query parameter: {unknown[0]}",
+                query,
+            ),
+        )
+        return False
 
     def _health(self) -> None:
         if not self._source_ready():
@@ -89,11 +157,7 @@ class FD001RequestHandler(BaseHTTPRequestHandler):
                 "dataset_id": DATASET_ID,
                 "source_type": SOURCE_TYPE,
                 "available_splits": ["TRAIN", "TEST"],
-                "observation_schema": {
-                    "unit_id": "positive integer",
-                    "cycle": "positive integer",
-                    "required_numeric_values": "non-null finite numbers",
-                },
+                "observation_schema": _observation_schema(),
                 "operating_settings": [f"setting_{number}" for number in range(1, 4)],
                 "sensor_names": [f"sensor_{number}" for number in range(1, 22)],
                 "sensor_units": "source-defined/unspecified",
@@ -148,6 +212,21 @@ class FD001RequestHandler(BaseHTTPRequestHandler):
             return None, _error("INVALID_QUERY_VALUE", f"{name} must be a positive integer", query)
         return value, None
 
+    @staticmethod
+    def _sensor(query: dict[str, str]) -> tuple[int | None, dict[str, object] | None]:
+        name = "sensor"
+        if name not in query:
+            return None, _error("INVALID_QUERY_VALUE", "Missing required parameter: sensor", query)
+        try:
+            value = int(query[name])
+        except ValueError:
+            return None, _error("INVALID_QUERY_VALUE", "sensor must be an integer", query)
+        if str(value) != query[name]:
+            return None, _error("INVALID_QUERY_VALUE", "sensor must be an integer", query)
+        if not 1 <= value <= 21:
+            return None, _error("INVALID_SENSOR", "sensor must be between 1 and 21", query)
+        return value, None
+
     def _history(self, query: dict[str, str]) -> None:
         if not self._source_ready():
             return
@@ -156,16 +235,19 @@ class FD001RequestHandler(BaseHTTPRequestHandler):
             self._send(HTTPStatus.BAD_REQUEST, error)
             return
         values: dict[str, int] = {}
-        for name in ("unit", "sensor", "start", "end"):
+        for name in ("unit", "start", "end"):
             value, error = self._integer(query, name)
             if error is not None:
                 self._send(HTTPStatus.BAD_REQUEST, error)
                 return
             assert value is not None
             values[name] = value
-        if values["sensor"] > 21:
-            self._send(HTTPStatus.BAD_REQUEST, _error("INVALID_SENSOR", "sensor must be between 1 and 21", query))
+        sensor, error = self._sensor(query)
+        if error is not None:
+            self._send(HTTPStatus.BAD_REQUEST, error)
             return
+        assert sensor is not None
+        values["sensor"] = sensor
         if values["start"] > values["end"]:
             self._send(HTTPStatus.BAD_REQUEST, _error("INVALID_QUERY_VALUE", "start must not exceed end", query))
             return

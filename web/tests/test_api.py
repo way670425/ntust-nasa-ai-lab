@@ -56,10 +56,50 @@ class APITestCase(unittest.TestCase):
     def test_catalog(self) -> None:
         status, payload = self.request("GET", "/api/catalog")
         self.assertEqual(200, status)
+        self.assertEqual(
+            {
+                "dataset_id",
+                "source_type",
+                "available_splits",
+                "observation_schema",
+                "operating_settings",
+                "sensor_names",
+                "sensor_units",
+                "source_provenance",
+            },
+            set(payload),
+        )
         self.assertEqual(["TRAIN", "TEST"], payload["available_splits"])
         self.assertEqual(3, len(payload["operating_settings"]))
         self.assertEqual(21, len(payload["sensor_names"]))
         self.assertIn("not a Sensor History Split", payload["source_provenance"]["test_rul"])
+
+    def test_catalog_has_complete_ordered_observation_schema(self) -> None:
+        status, payload = self.request("GET", "/api/catalog")
+        self.assertEqual(200, status)
+        schema = payload["observation_schema"]
+        expected_names = (
+            ["unit_id", "cycle"]
+            + [f"setting_{number}" for number in range(1, 4)]
+            + [f"sensor_{number}" for number in range(1, 22)]
+        )
+        self.assertEqual(26, len(schema))
+        self.assertEqual(expected_names, [field["name"] for field in schema])
+        self.assertEqual(list(range(1, 27)), [field["source_column_position"] for field in schema])
+        self.assertEqual(
+            ["integer", "integer"] + ["number"] * 24,
+            [field["data_type"] for field in schema],
+        )
+        for field in schema:
+            self.assertEqual(
+                {"name", "data_type", "nullable", "source_column_position", "query_semantics"},
+                set(field),
+            )
+            self.assertIs(field["nullable"], False)
+            self.assertTrue(field["query_semantics"].strip())
+        self.assertIn("split-scoped", schema[0]["query_semantics"])
+        self.assertIn("beginning at 1", schema[1]["query_semantics"])
+        self.assertTrue(all("source-defined or unspecified" in field["query_semantics"] for field in schema[2:]))
 
     def test_units_are_split_scoped_and_source_derived(self) -> None:
         train_status, train = self.request("GET", "/api/units?split=train")
@@ -131,6 +171,42 @@ class APITestCase(unittest.TestCase):
         for path, status, code in cases:
             with self.subTest(path=path):
                 self.assert_error(path, status, code)
+
+    def test_strict_query_parameter_validation(self) -> None:
+        cases = [
+            "/api/health?foo=1",
+            "/api/catalog?foo=1",
+            "/api/units?split=train&foo=1",
+            "/api/history?split=train&unit=1&sensor=7&start=1&end=20&foo=1",
+            "/api/units?split=train&split=test",
+            "/api/history?split=train&unit=1&unit=2&sensor=7&start=1&end=20",
+            "/api/units",
+            "/api/history?split=train&unit=1",
+        ]
+        for path in cases:
+            with self.subTest(path=path):
+                self.assert_error(path, 400, "INVALID_QUERY_VALUE")
+
+    def test_invalid_sensor_contract(self) -> None:
+        cases = [
+            ("abc", "INVALID_QUERY_VALUE"),
+            ("sensor_7", "INVALID_QUERY_VALUE"),
+            ("0", "INVALID_SENSOR"),
+            ("22", "INVALID_SENSOR"),
+            ("-1", "INVALID_SENSOR"),
+            ("7.5", "INVALID_QUERY_VALUE"),
+            ("", "INVALID_QUERY_VALUE"),
+        ]
+        for sensor, code in cases:
+            path = f"/api/history?split=train&unit=1&sensor={sensor}&start=1&end=20"
+            with self.subTest(sensor=sensor):
+                self.assert_error(path, 400, code)
+
+        status, payload = self.request(
+            "GET", "/api/history?split=train&unit=1&sensor=7&start=1&end=20"
+        )
+        self.assertEqual(200, status)
+        self.assertEqual(20, payload["observation_count"])
 
     def test_write_methods_are_forbidden(self) -> None:
         for method in ("POST", "PUT", "PATCH", "DELETE"):

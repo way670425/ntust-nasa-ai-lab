@@ -1,69 +1,67 @@
-# Web Own Worker Execution Report
+# Web Own Worker R1 Execution Report
 
-- Type: `WORKER_TO_BRAIN_RETURN`
-- Work item: `WO-M3-WEB-API-001`
+- Type: `WORKER_TO_BRAIN_REWORK_RETURN`
+- Work item: `WO-M3-WEB-API-001-R1`
+- Parent work item: `WO-M3-WEB-API-001`
 - From: Web Own Worker
 - To: STUDENT-WEB Brain
 - Execution date: 2026-11-22 (Asia/Taipei)
 - Worker execution: `SUCCESS` (candidate delivery; Brain verification required)
 - GitHub AGENTS read: `TRUE`
-- Base commit: `12e8a2c60ad26b650f524fad3f850fa4d8780441`
+- Base commit: `a62f0fa6897d2aae2d84d7f6930d1b268f003c26`
 - Result commit: the Git commit containing this report; full SHA is reported in the external Worker return after push
 - Worker Gate declaration: `PROHIBITED`
 
-## Governance and source integrity
-
-- GitHub `origin/main` was fetched and confirmed equal to local `main` before implementation.
-- The accepted M2 commit was present at the base commit.
-- Existing local untracked data and Research evidence were preserved. Only `web/` was added.
-- Source files were read only and remained excluded from Git staging.
-- TRAIN SHA-256: `963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8`
-- TEST SHA-256: `3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851`
-- TEST_RUL SHA-256: `a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca`
-- Validated inventory: TRAIN 100 Units / 20,631 observations; TEST 100 Units / 13,096 observations; TEST_RUL 100 positional labels.
-
-## Verification status
+## R1 scope and results
 
 | Check | Worker result |
 |---|---|
-| Source integrity | PASS |
-| API health | PASS |
-| API catalog | PASS |
-| API units | PASS |
-| API history | PASS |
+| Strict query validation | PASS |
+| Complete Catalog schema | PASS |
+| Invalid Sensor tests | PASS |
+| API regression | PASS |
 | Source-row verification | PASS |
+| Source-hash verification | PASS |
 | Null policy | PASS |
 | Error contract | PASS |
 | Read-only verification | PASS |
 
-The required TRAIN Unit 1, Sensor 7, Cycle 1–20 query returned 20 observations. A test-side parser independently read `train_FD001.txt` and compared all 20 values, cycle IDs, physical line numbers, parsed row indexes, source basenames, and source hashes. Comparison result: 20/20 matched. Cycle 1 mapped to physical line 1 / parsed row 0; Cycle 20 mapped to physical line 20 / parsed row 19. The first and last values were 554.36 and 554.81.
+The changes are limited to the three authorized corrections:
+
+1. `/api/health` and `/api/catalog` reject all query parameters; `/api/units` permits only `split`; `/api/history` permits only `split`, `unit`, `sensor`, `start`, and `end`. Unknown, repeated, or missing required parameters return HTTP 400 with `INVALID_QUERY_VALUE`.
+2. Catalog `observation_schema` now returns all 26 source fields in one-based source-column order. Every entry contains `name`, `data_type`, `nullable`, `source_column_position`, and `query_semantics`. All fields are non-nullable; physical units remain source-defined or unspecified; TEST_RUL remains an independent positional label rather than a Sensor History Split.
+3. Invalid Sensor selectors distinguish malformed/non-integer values (`INVALID_QUERY_VALUE`) from integer IDs outside 1–21 (`INVALID_SENSOR`). Normal `sensor=7` behavior is unchanged.
+
+## Regression and source evidence
+
+The required TRAIN Unit 1, Sensor 7, Cycle 1–20 query returned 20 observations. A test-side parser independently compared all 20 source values, cycles, source basenames, SHA-256 values, physical line numbers, and parsed row indexes. Comparison result: 20/20 matched. Cycle 1 mapped to physical line 1 / parsed row 0; Cycle 20 mapped to physical line 20 / parsed row 19. No cross-Split, cross-Unit, or out-of-range observations were returned.
+
+Source SHA-256 values after the R1 test run:
+
+- TRAIN: `963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8`
+- TEST: `3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851`
+- TEST_RUL: `a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca`
 
 ## Test evidence
 
-Final command:
+Command:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s web/tests -v
 ```
 
-Final result: exit code `0`; 11 tests run; 11 passed; 0 failed; 0 errors.
+Result: exit code `0`; 14 tests run; 14 passed; 0 failed; 0 errors.
 
-Covered cases include all required endpoints, TRAIN and TEST split isolation, the required independent row comparison, missing/invalid parameters, absent Unit and Cycle, invalid Sensor and split, reversed ranges, non-integer selectors, missing and hash-mismatched sources, missing and non-finite Sensor values, safe 503 behavior, private-path non-disclosure, and POST/PUT/PATCH/DELETE rejection.
-
-The first sandboxed test attempt could not bind a loopback socket and exited with code 1 before endpoint tests ran (`PermissionError: Operation not permitted`). The identical suite was then rerun with approved local loopback permission and completed with the final result above. This was an execution-sandbox restriction, not an API assertion failure.
-
-Post-test source hash verification reproduced all three accepted SHA-256 values.
+The suite covers the five original endpoint calls, eight strict-parameter cases, all 26 Catalog fields, seven invalid-Sensor cases, the normal Sensor 7 case, source hash and row verification, null handling, safe error responses, TRAIN/TEST isolation, missing/tampered/malformed sources, and POST/PUT/PATCH/DELETE rejection.
 
 ## Changed files
 
-- `web/README.md`
-- `web/fd001_api/__init__.py`
 - `web/fd001_api/app.py`
-- `web/fd001_api/loader.py`
-- `web/run_server.py`
-- `web/tests/__init__.py`
 - `web/tests/test_api.py`
+- `web/README.md`
 - `web/worker_report.md`
+
+No Loader, Research, FD001 source, Raw Index, unrelated code, or private configuration was modified or staged.
 
 ## STOP status
 
