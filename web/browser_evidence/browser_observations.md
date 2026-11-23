@@ -1,42 +1,35 @@
-# FD001 M4 Browser Evidence Observations
+# FD001 Prompt Enhancement Browser Evidence
 
-- Work item: `WO-M4-WEB-EVIDENCE-001`
-- Date: 2026-11-23 (Asia/Taipei)
-- Browser: Google Chrome 157.0.8103.80 on macOS 27.0.1 arm64
-- Production URL: `http://127.0.0.1:8001/`
-- Dataset identity: `NASA_CMAPSS_FD001` / `NASA_FD001_LOCAL_TRUSTED`
+- Work item: `WO-M4-WEB-PROMPT-ENHANCE-001`
+- Browser: Google Chrome 157.0.8103.80
+- OS: macOS 27.0.1 arm64
+- URL: `http://127.0.0.1:8001/`
 
-## Safe visual artifacts
+## TRAIN Prompt
 
-### Initial website and required TRAIN query
+![TRAIN Prompt with Field Semantics](m4_prompt_enhance_train.png)
 
-![Initial validated website](m4_initial.png)
+TRAIN Unit 1 sensor_7 cycles 1–20 loaded 20 real API observations. The Prompt showed source column 12, source-defined/unspecified unit, current-query Mean/Delta, and attributed TRAIN Split-level quality counts of 20,631 observations and 100 Units.
 
-TRAIN Unit 1 sensor_7 cycles 1–20 loaded 20 observations. The first row and selected Evidence were Cycle 1, value 554.36, `train_FD001.txt`, physical line 1 and parsed row 0.
+## Chart selection and provenance
 
-### Chart selection and source provenance
+![Chart Cycle 20 and Evidence](m4_prompt_enhance_chart_evidence.png)
 
-![Cycle 20 selected in Chart and Evidence](m4_chart_selected_evidence.png)
+The real Canvas point at Cycle 20 was selected. Evidence showed `train_FD001.txt`, the accepted hash, physical line 20 and parsed row 19; Prompt selected Cycle 20.
 
-The exact Canvas point for Cycle 20 was clicked. The orange selected point, Evidence Cycle 20, physical line 20 and parsed row 19 agreed. The Prompt also changed to Selected Cycle 20.
+## TEST isolation and Sensor column
 
-### Evidence Prompt and Copy result
+![TEST Unit 2 sensor 21 Prompt](m4_prompt_enhance_test.png)
 
-![Traceable Evidence Prompt](m4_evidence_prompt.png)
+TEST Unit 2 sensor_21 used `test_FD001.txt`, the TEST hash, physical line 32 / parsed row 31, and one-based Sensor source column 26. Its quality context changed to TEST 13,096 observations / 100 Units and did not retain TRAIN Scope.
 
-The visible Prompt for selected Cycle 10 contained OBSERVED source identity and coordinates, DERIVED Mean/Delta formulas over the current 20 API observations, bounded INFERRED statements, UNKNOWN fields and all required simulation disclosures. Copy feedback was visible. Clipboard text and visible text were exactly equal at 2,760 characters.
+## Interaction evidence
 
-### Split, Unit and Sensor isolation
+- Changing the range to cycles 2–10 produced 9 rows and the same DERIVED calculation window.
+- Selecting the Table Cycle 5 row updated Evidence to physical line 36 / parsed row 35 and synchronized Prompt selection.
+- Copy feedback reported success; explicit browser Clipboard read-back exactly equaled the 5,582-character UI Prompt.
+- TEST_ONLY 400, 404, 503 and unavailable-backend states invalidated Prompt and disabled Copy.
+- Rapid selection ended in a source-consistent TEST Prompt without stale TRAIN Metadata.
+- Prompt review found no numeric fault threshold, fabricated health score, confirmed diagnosis or RUL value.
 
-![TEST Unit 2 sensor 8 selection](m4_switched_selection.png)
-
-After switching to TEST Unit 2 sensor_8, the Chart, Evidence and Prompt used only TEST values and `test_FD001.txt`; physical line 32 / parsed row 31 mapped the selected observation. No TRAIN identity remained.
-
-## Additional interaction observations
-
-- A 2–10 Cycle query produced 9 Table rows and the same range in Chart and Prompt.
-- Rapid TRAIN then TEST switching ended exclusively in TEST Unit 1 sensor_8 state; the earlier response did not overwrite it.
-- TEST_ONLY 400, 404, 503 and unavailable-backend runs showed Query Validation Error, Observation Not Found, Source Not Validated and Connection Error respectively. Each cleared the Prompt and disabled Copy.
-- Forbidden-claim review found no numeric warning/failure threshold, health score, RUL value, confirmed fault diagnosis or claim that Prompt data was sent externally.
-
-Screenshots show only the local application and safe source basenames/hashes/coordinates. They do not show private paths, credentials, secrets, or a bulk raw-source export.
+The evidence contains safe basenames/hashes/coordinates only. No raw source, complete Raw Index, private path or external AI transmission occurred.

@@ -1,3 +1,5 @@
+import { M2_QUALITY_METADATA, selectedSensorSourceColumn } from "./quality_metadata.mjs";
+
 export const DATASET_ID = "NASA_CMAPSS_FD001";
 export const SOURCE_TYPE = "NASA_FD001_LOCAL_TRUSTED";
 
@@ -218,6 +220,53 @@ function formatNumber(value) {
   return Number(value.toFixed(6)).toString();
 }
 
+export function fieldSemanticsFor(sensor) {
+  const sourceColumn = selectedSensorSourceColumn(sensor);
+  if (sourceColumn === null) throw new ContractError("Selected Sensor is outside the accepted 21-channel schema");
+  return {
+    field_count: 26,
+    unit_fields: 1,
+    cycle_fields: 1,
+    operating_setting_fields: 3,
+    sensor_channels: 21,
+    selected_sensor: sensor,
+    selected_sensor_source_column_1_based: sourceColumn,
+    physical_unit: "source-defined / unspecified",
+  };
+}
+
+export function qualityContextFor(history) {
+  const unavailable = {
+    available: false,
+    status: "UNKNOWN",
+    display: "Data quality context unavailable",
+  };
+  if (
+    !history ||
+    history.dataset_id !== M2_QUALITY_METADATA.dataset_id ||
+    history.source_type !== M2_QUALITY_METADATA.source_type
+  ) return unavailable;
+  const split = M2_QUALITY_METADATA.splits[history.split];
+  if (!split || !Array.isArray(history.observations) || history.observations.length === 0) return unavailable;
+  const sourceMatches = history.observations.every((observation) => (
+    observation?.source_evidence?.source_file === split.source_file &&
+    observation?.source_evidence?.source_sha256 === split.source_sha256
+  ));
+  if (!sourceMatches) return unavailable;
+  return {
+    available: true,
+    status: "VERIFIED_REPORT_METADATA",
+    metadata_version: M2_QUALITY_METADATA.metadata_version,
+    report_source: M2_QUALITY_METADATA.report_source,
+    contract_source: M2_QUALITY_METADATA.contract_source,
+    work_item_id: M2_QUALITY_METADATA.work_item_id,
+    scope: M2_QUALITY_METADATA.scope,
+    applicable_split: history.split,
+    near_constant_method: M2_QUALITY_METADATA.near_constant_method,
+    ...split,
+  };
+}
+
 export function evidencePromptIdentity(history, index) {
   const observation = history?.observations?.[index];
   if (!observation) return null;
@@ -246,6 +295,8 @@ export function buildEvidencePrompt(history, index) {
     throw new ContractError("Evidence Prompt values must be finite non-null numbers");
   }
   const selected = history.observations[index];
+  const fields = fieldSemanticsFor(history.sensor);
+  const quality = qualityContextFor(history);
   const count = values.length;
   const sum = values.reduce((total, value) => total + value, 0);
   const mean = sum / count;
@@ -270,6 +321,23 @@ Use only the classified evidence below. Do not add external baselines, threshold
 - Source Physical Line (1-based): ${evidence.source_physical_line_1_based}
 - Parsed Row Index (0-based): ${evidence.parsed_row_index_0_based}
 
+[FIELD SEMANTICS — ACCEPTED M2 DATA CONTRACT]
+- Schema: 26 one-based source fields = 1 Unit ID field + 1 Cycle field + 3 Operating Settings + 21 Sensor Channels.
+- Column mapping: Unit ID=1; Cycle=2; Operating Settings=3-5; Sensor Channels=6-26.
+- Selected Sensor Name: ${fields.selected_sensor}
+- Selected Sensor Source Column (one-based): ${fields.selected_sensor_source_column_1_based}; formula = sensor_number + 5.
+- Selected Sensor Physical Unit: source-defined / unspecified.
+- Do not invent an engineering meaning, physical unit, component mapping, or fault mode for this Sensor channel.
+- Current Split semantics: ${history.split === "TRAIN" ? "TRAIN is a complete simulated degradation trajectory and is not a physical field-failure diagnosis." : "TEST is a truncated simulated degradation trajectory; its last observed Cycle is not a failure time."}
+- TEST_RUL semantics: independent positional RUL-at-last-observed-Cycle label; not a per-Cycle Sensor Observation and no value is supplied here.
+
+[SOURCE PROVENANCE EXPLANATION]
+- Source File is the safe basename of the local raw source; it contains no private absolute path.
+- Source SHA-256 identifies the complete locally validated raw source file.
+- Source Physical Line is the actual TXT line number and begins at 1.
+- Parsed Row Index is the parsed Observation index within the Split and begins at 0.
+- Raw Index means parsed-source traceability coordinates. It is not Cycle, failure time, Physical Line, health score, or a complete Raw Index publication.
+
 [DERIVED]
 - Calculation source: only the ${count} current API observations for ${history.split} Unit ${history.unit_id}, ${history.sensor}, cycles ${history.start_cycle}-${history.end_cycle}.
 - Mean formula: Mean = sum(values) / N
@@ -289,6 +357,19 @@ Use only the classified evidence below. Do not add external baselines, threshold
 - Warning or failure threshold: unknown; not provided by the API evidence.
 - RUL prediction/value for this query: unknown; do not fabricate one.
 
+[M2 DATA QUALITY CONTEXT — REPORT-LEVEL METADATA]
+${quality.available ? `- Status: ${quality.status}; Metadata Version: ${quality.metadata_version}.
+- Source: ${quality.report_source}; Work Item: ${quality.work_item_id}; Contract: ${quality.contract_source}.
+- Scope: ${quality.scope}; Applicable Split: ${quality.applicable_split}; this is not Live API quality metadata.
+- Verified Source: ${quality.source_file}; SHA-256: ${quality.source_sha256}.
+- Split Summary: Observations=${quality.observations}; Units=${quality.units}; Missing Values=${quality.missing_values}; Non-Finite Values=${quality.non_finite_values}; Duplicate Unit-Cycle=${quality.duplicate_unit_cycle}; Invalid Cycle=${quality.invalid_cycle}; Missing Cycles=${quality.missing_cycles}; Parsing Anomalies=${quality.parsing_anomalies}.
+- Constant Sensors over the entire ${quality.applicable_split} Split: ${quality.constant_sensors.map((sensor) => `sensor_${sensor}`).join(", ")}.
+- Near-Constant Method: ${quality.near_constant_method}; Finding: ${quality.near_constant_sensors.length ? quality.near_constant_sensors.join(", ") : "NONE"}.
+- These are accepted Split-level report statistics, not statistics for selected Unit ${history.unit_id} or selected Cycles ${history.start_cycle}-${history.end_cycle}.
+- A Constant Sensor finding does not mean Sensor failure. The near-constant statistical threshold is not a warning or fault threshold.` : `- Status: UNKNOWN.
+- Data quality context unavailable because the versioned M2 report metadata could not be matched to the current source identity.
+- Do not fabricate quality counts or treat unavailable metadata as Live API evidence.`}
+
 [REQUIRED DISCLOSURES]
 - NASA C-MAPSS FD001 is a simulated turbofan degradation dataset, not physical equipment field measurement.
 - TRAIN contains simulated complete degradation trajectories.
@@ -297,13 +378,28 @@ Use only the classified evidence below. Do not add external baselines, threshold
 - Sensor trend and derived statistics are not a verified fault diagnosis.
 - Do not insert an RUL value unless a validated API response explicitly provides it.
 
+[EXTERNAL AI EVIDENCE INSTRUCTIONS]
+- Use only the supplied verified evidence.
+- Preserve the OBSERVED / DERIVED / INFERRED / UNKNOWN classifications.
+- Treat M2 Data Quality Context only as attributed report-level metadata, never as selected-Unit OBSERVED values or local DERIVED statistics.
+- Cite the source basename, SHA-256, physical line, and parsed row index.
+- Do not fabricate missing observations or fill missing Cycles.
+- Do not fabricate a baseline, warning threshold, or fault threshold.
+- Do not diagnose engine faults from Sensor trends or descriptive statistics.
+- Do not invent health scores, failure causes, RUL predictions, or RUL values.
+- State uncertainty and identify unsupported claims explicitly.
+- Do not treat simulated FD001 observations as physical field measurements.
+- Do not transmit or request raw FD001 rows; this Prompt is delivered by local copy only.
+
 [REQUEST]
-Summarize the evidence while preserving the OBSERVED, DERIVED, INFERRED, and UNKNOWN boundaries. Cite the selected source basename, SHA-256, physical line, and parsed row. State all limitations explicitly.`;
+Summarize the supplied evidence under these rules. Keep current-query evidence separate from Split-level report metadata and state every limitation explicitly.`;
 
   return {
     identity,
     text: prompt,
     statistics: { count, sum, mean, first, last, delta },
+    field_semantics: fields,
+    quality_context: quality,
   };
 }
 

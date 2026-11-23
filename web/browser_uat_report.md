@@ -1,53 +1,43 @@
-# FD001 M4 Browser UAT Report
+# FD001 Prompt Enhancement Browser UAT Report
 
-- Work item: `WO-M4-WEB-EVIDENCE-001`
+- Work item: `WO-M4-WEB-PROMPT-ENHANCE-001`
 - Date: 2026-11-23 (Asia/Taipei)
 - Browser: Google Chrome 157.0.8103.80
 - OS: macOS 27.0.1 arm64
-- Mode: visible Chrome controlled through real UI interactions
-- Browser URL: `http://127.0.0.1:8001/`
-- API: accepted M3-A service at `127.0.0.1:8000`
+- Mode: visible real Chrome through CUA and Playwright interaction
+- URL: `http://127.0.0.1:8001/`
 - Startup: `PYTHONDONTWRITEBYTECODE=1 python3 web/run_server.py` and `PYTHONDONTWRITEBYTECODE=1 python3 web/frontend_server.py`
-- Result: **16 PASS / 0 FAIL**
+- Result: **15 PASS / 0 FAIL**
 
-## Cases
-
-| ID | Operation | Active selection | Expected | Actual | Result |
-|---|---|---|---|---|---|
-| UAT_01 | Open local website | Default load | Page is interactive | Title, disclosure, controls, validated badge, Chart, Table, Evidence and Prompt loaded | PASS |
-| UAT_02 | Select TRAIN Unit 1 Sensor 7 | TRAIN / 1 / sensor_7 | Selectors match query | Status and Chart title showed the requested selection | PASS |
-| UAT_03 | Set Cycle Range 1–20 | Cycles 1–20 | Range matches query | Start 1, End 20 and 20 observations shown | PASS |
-| UAT_04 | Inspect Trend Chart | TRAIN / 1 / sensor_7 / 1–20 | 20 real API points | Chart badge showed 20; plotted values came from the same 20 parsed API observations | PASS |
-| UAT_05 | Inspect Observation Table | Same selection | 20 rows match API | Browser counted 20 rows; values and provenance matched API/source comparison | PASS |
-| UAT_06 | Click Chart Observation | Cycle 20 | Evidence updates | Highlight moved to Cycle 20; physical line 20, parsed row 19; Prompt selected Cycle 20 | PASS |
-| UAT_07 | Click Table Observation | Cycle 10 | Evidence and Prompt update | Selected Cycle 10; Prompt source line 10 and parsed row 9 | PASS |
-| UAT_08 | Switch TRAIN to TEST | TEST / 1 / sensor_7 | No cross-Split residue | TEST status, title, Prompt and `test_FD001.txt` replaced TRAIN state | PASS |
-| UAT_09 | Switch Engine Unit | TEST / 2 / sensor_7 | Unit and cycles update | Chart title and Evidence used Unit 2; current range reset to 1–20 | PASS |
-| UAT_10 | Switch Sensor | TEST / 2 / sensor_8 | Chart/Table/Evidence update | All active UI and Prompt fields used sensor_8 | PASS |
-| UAT_11 | Change Cycle Range | TEST / 2 / sensor_8 / 2–10 | Query/display match | Title and Prompt showed 2–10; Table contained 9 rows | PASS |
-| UAT_12 | Generate Evidence Prompt | Current validated History | Prompt maps current evidence | OBSERVED, DERIVED, INFERRED and UNKNOWN plus required disclosures were present | PASS |
-| UAT_13 | Copy Evidence Prompt | TRAIN / 1 / sensor_7 / selected Cycle 10 | Clipboard equals visible Prompt | Success feedback shown; browser Clipboard and UI were exactly equal at 2,760 characters | PASS |
-| UAT_14 | Exercise 400/404/503/connection errors | TEST_ONLY harness | Safe classification; no stale data | Correct four labels shown; Prompt invalid and Copy disabled in every error state | PASS |
-| UAT_15 | Rapidly switch selections | TRAIN immediately replaced by TEST | Old response cannot overwrite new | Final title/status/Prompt were exclusively TEST Unit 1 sensor_8 | PASS |
-| UAT_16 | Review page and Prompt claims | Production UI | No fabricated diagnosis, threshold or RUL | Numeric threshold, health score, RUL, confirmed diagnosis and external-send scans all returned false | PASS |
+| ID | Operation | Expected | Actual | Result |
+|---|---|---|---|---|
+| UAT_01 | Open real website | Source is validated | Badge showed `Source Validated`; API-backed page was interactive | PASS |
+| UAT_02 | TRAIN Unit 1 sensor_7, cycles 1–20 | Current selection is exact | Status, Chart, 20 Table rows and Prompt matched the selection | PASS |
+| UAT_03 | Inspect Prompt Current Selection | Prompt maps live API | Dataset/Split/Unit/Sensor/range/count/selected value and provenance matched API | PASS |
+| UAT_04 | Inspect Field Semantics | sensor_7 is source column 12 | Prompt showed 26 fields, 1+1+3+21 mapping, one-based column 12 and unspecified unit | PASS |
+| UAT_05 | Inspect Data Quality Context | M2 report source is explicit | Prompt cited report, contract, work item, Metadata version and TRAIN 20,631/100 counts | PASS |
+| UAT_06 | Switch TRAIN to TEST | Quality Scope changes without residue | TEST 13,096/100, TEST source/hash and `Applicable Split: TEST`; no TRAIN quality Scope remained | PASS |
+| UAT_07 | Switch to Unit 2 | Old Unit is removed | Prompt used Unit 2 only | PASS |
+| UAT_08 | Switch to sensor_21 | Column position updates | Prompt changed selected Sensor to sensor_21 and one-based source column 26 | PASS |
+| UAT_09 | Change range to 2–10 | DERIVED range/count update | Table contained 9 rows; Prompt/Mean/Delta calculation source used cycles 2–10 | PASS |
+| UAT_10 | Click Chart Cycle 20 | Provenance and Prompt synchronize | Selected Cycle 20; physical line 20, parsed row 19; Prompt selected Cycle 20 | PASS |
+| UAT_11 | Click Table Cycle 5 | Prompt synchronizes | TEST Unit 2 sensor_21 selected Cycle 5; line 36 / parsed row 35 | PASS |
+| UAT_12 | Copy Prompt | Clipboard equals UI | Browser Clipboard and visible Prompt were exactly equal at 5,582 characters | PASS |
+| UAT_13 | Exercise 400/404/503/connection errors | Old Prompt is unusable | Correct safe labels; Prompt invalidated and Copy disabled in all four TEST_ONLY states | PASS |
+| UAT_14 | Rapid TRAIN then TEST switch | No stale Prompt | Final Chart and Prompt were exclusively TEST with TEST quality Scope | PASS |
+| UAT_15 | Review External AI instructions | Complete, bounded, no fabricated claims | Required instructions present; numeric threshold/score/RUL scans false; local-copy/no-send disclosure present | PASS |
 
 ## Visual evidence
 
-- `web/browser_evidence/m4_initial.png`: initial validated website and TRAIN selection.
-- `web/browser_evidence/m4_chart_selected_evidence.png`: 20-point Chart and Cycle 20 provenance.
-- `web/browser_evidence/m4_evidence_prompt.png`: Cycle 10 Prompt and visible copy-success feedback.
-- `web/browser_evidence/m4_switched_selection.png`: TEST Unit 2 sensor_8 Evidence and Prompt.
-- Detailed observations: `web/browser_evidence/browser_observations.md`.
+- `web/browser_evidence/m4_prompt_enhance_train.png`: TRAIN Prompt, current selection and Field Semantics.
+- `web/browser_evidence/m4_prompt_enhance_chart_evidence.png`: real Chart Cycle 20 selection and provenance.
+- `web/browser_evidence/m4_prompt_enhance_test.png`: TEST Unit 2 sensor_21 Prompt and one-based column 26.
+- `web/browser_evidence/browser_observations.md`: detailed observations.
 
-The screenshots came from the real browser and contain no credential, secret, local absolute path, or raw-source row collection. Initial and TRAIN-selection states share the same safe screenshot; Chart/Table and selected Evidence share the Chart/Evidence screenshot.
+Screenshots show only safe website content: no private absolute path, credential, secret, full Raw Index or bulk reconstructable source rows.
 
-## Failure and correction history
+## Defect and correction record
 
-1. The first automated run found one incorrect test expectation: rejected stale/altered/unavailable copy attempts correctly made zero Clipboard writes, while the test expected one. The assertion was corrected; the full test suite then passed.
-2. The first M4 browser load reused the old unversioned ES module cache, so the new HTML appeared while Prompt stayed unavailable. Version parameters were added to both `app.js` and `state.mjs`; a fresh load generated the Prompt correctly.
-3. The CUA clipboard bridge did not expose the page Clipboard buffer even though the browser reported a successful write. This was not treated as proof. Exact equality was subsequently reproduced twice: macOS `pbpaste` versus an API-generated expected Prompt, and Playwright-granted browser Clipboard versus the visible Prompt.
-4. An initial approximate Canvas coordinate did not hit a point and was not counted. The final Chrome run calculated the same Canvas scale used by the application, clicked the exact Cycle 20 point, and verified the resulting Evidence and Prompt.
+No application defect was found during the final 15-case run. The exact Canvas point and Clipboard read-back were exercised in a second visible Chrome context with explicit local Clipboard permission; this supplements rather than replaces the CUA interactions. TEST_ONLY error injection was not used as source-integrity evidence.
 
-## Boundary
-
-The 400/404/503 scenarios use the committed, clearly marked TEST_ONLY harness; production data, Chart/Table values, provenance, Prompt and copy checks use the accepted real API. This Worker report is evidence for STUDENT-WEB Brain review, not an M4 Gate decision and not authorization for M5.
+This is Worker evidence for STUDENT-WEB Brain review. It is not an M4 Gate decision and does not authorize M5.

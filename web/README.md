@@ -60,6 +60,12 @@ Selection or query changes invalidate the previous Prompt until the new request 
 
 The Prompt discloses that FD001 is simulated rather than field measurement, TRAIN is a complete simulated trajectory, TEST is truncated and its last observed Cycle is not failure time, and TEST_RUL is a separate label rather than a Sensor Observation.
 
+The enhanced Prompt also includes accepted 26-field semantics and an attributed, versioned M2 Data Quality context. Sensor source columns are one-based and calculated as `sensor_number + 5` (sensor_1=6, sensor_7=12, sensor_21=26). Physical units and engineering meanings remain source-defined/unspecified.
+
+M2 quality values come from `research/m2/data_quality_report.md`, not the live API. They are labeled `SPLIT_LEVEL`, source-bound by safe basename and SHA-256, and explicitly separated from the selected Unit/range and current-query DERIVED statistics. A metadata mismatch produces `Data quality context unavailable`; it never fabricates quality counts. See `web/prompt_quality_context.md` for the reviewed mapping.
+
+External AI Evidence Instructions are text inside the locally copied Prompt only. The website does not call an external AI service, require an API key, or upload raw Sensor observations.
+
 Frontend automated tests:
 
 ```sh
