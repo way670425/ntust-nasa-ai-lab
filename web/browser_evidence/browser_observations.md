@@ -1,65 +1,42 @@
-# FD001 Browser Evidence Observations
+# FD001 M4 Browser Evidence Observations
 
-- Work item: `WO-M3-WEB-FRONTEND-001`
+- Work item: `WO-M4-WEB-EVIDENCE-001`
 - Date: 2026-11-23 (Asia/Taipei)
-- Browser: Google Chrome 157.0.8103.80
-- Production UAT URL: `http://127.0.0.1:8001/`
-- API URL: `http://127.0.0.1:8000/`
-- Dataset identity shown: `NASA_CMAPSS_FD001` / `NASA_FD001_LOCAL_TRUSTED`
-- Source badge shown: `Source Validated`
+- Browser: Google Chrome 157.0.8103.80 on macOS 27.0.1 arm64
+- Production URL: `http://127.0.0.1:8001/`
+- Dataset identity: `NASA_CMAPSS_FD001` / `NASA_FD001_LOCAL_TRUSTED`
 
-## Observed browser states
+## Safe visual artifacts
 
-### Initial validated load
+### Initial website and required TRAIN query
 
-- Split: TRAIN
-- Unit: 1
-- Sensor: `sensor_7`
-- Cycle range: 1–20
-- Observation count: 20
-- First row: Cycle 1, value 554.36, `train_FD001.txt`, physical line 1, parsed row 0
-- Evidence panel matched the first table row.
-- Chart displayed 20 unsmoothed observation points without a loading overlay after the UAT fix. The query evidence showed Start Cycle 1 and End Cycle 20.
+![Initial validated website](m4_initial.png)
 
-### Split and Unit changes
+TRAIN Unit 1 sensor_7 cycles 1–20 loaded 20 observations. The first row and selected Evidence were Cycle 1, value 554.36, `train_FD001.txt`, physical line 1 and parsed row 0.
 
-- TEST Unit 1 loaded 20 rows for cycles 1–20 and reported available range 1–31.
-- First TEST row: Cycle 1, `sensor_7`, value 553.9, `test_FD001.txt`, physical line 1, parsed row 0.
-- TEST Unit 2 reported available range 1–49; the first selected observation mapped to physical line 32.
+### Chart selection and source provenance
 
-### Sensor, Cycle, and selection consistency
+![Cycle 20 selected in Chart and Evidence](m4_chart_selected_evidence.png)
 
-- Changing to `sensor_1` loaded values from the API. All 20 values in the selected TEST window were 518.67 and the chart visibly rendered a horizontal line without fault interpretation.
-- Changing the range to cycles 5–10 returned exactly 6 rows.
-- First row: Cycle 5, value 518.67, physical line 36, parsed row 35.
-- Last row: Cycle 10, value 518.67, physical line 41, parsed row 40.
-- Selecting table Cycle 7 updated the highlighted row, chart point, and Evidence to physical line 38 / parsed row 37.
-- Selecting the chart point for Cycle 9 updated the highlighted row and Evidence to physical line 40 / parsed row 39.
+The exact Canvas point for Cycle 20 was clicked. The orange selected point, Evidence Cycle 20, physical line 20 and parsed row 19 agreed. The Prompt also changed to Selected Cycle 20.
 
-### Error-state observations
+### Evidence Prompt and Copy result
 
-The TEST_ONLY UAT harness served controlled error responses to the real frontend. It was not used for source validation.
+![Traceable Evidence Prompt](m4_evidence_prompt.png)
 
-| HTTP scenario | UI title | Evidence state |
-|---|---|---|
-| 400 | Query Validation Error | N/A; 0 rows |
-| 404 | Observation Not Found | N/A; 0 rows |
-| 503 | Source Not Validated | N/A; 0 rows |
-| Backend unavailable / proxy 502 | Connection Error | N/A; 0 rows |
+The visible Prompt for selected Cycle 10 contained OBSERVED source identity and coordinates, DERIVED Mean/Delta formulas over the current 20 API observations, bounded INFERRED statements, UNKNOWN fields and all required simulation disclosures. Copy feedback was visible. Clipboard text and visible text were exactly equal at 2,760 characters.
 
-### Stale-response prevention
+### Split, Unit and Sensor isolation
 
-TEST was selected and immediately replaced by TRAIN. Final browser state contained only:
+![TEST Unit 2 sensor 8 selection](m4_switched_selection.png)
 
-- Split / Evidence Split: TRAIN
-- Chart: `TRAIN · Unit 1 · sensor_7 · Cycles 1–20`
-- Status: 20 validated observations loaded from TRAIN Unit 1
-- Source file in every rendered row and Evidence: `train_FD001.txt`
+After switching to TEST Unit 2 sensor_8, the Chart, Evidence and Prompt used only TEST values and `test_FD001.txt`; physical line 32 / parsed row 31 mapped the selected observation. No TRAIN identity remained.
 
-No TEST values or TEST evidence remained.
+## Additional interaction observations
 
-## Interpretation review
+- A 2–10 Cycle query produced 9 Table rows and the same range in Chart and Prompt.
+- Rapid TRAIN then TEST switching ended exclusively in TEST Unit 1 sensor_8 state; the earlier response did not overwrite it.
+- TEST_ONLY 400, 404, 503 and unavailable-backend runs showed Query Validation Error, Observation Not Found, Source Not Validated and Connection Error respectively. Each cleared the Prompt and disabled Copy.
+- Forbidden-claim review found no numeric warning/failure threshold, health score, RUL value, confirmed fault diagnosis or claim that Prompt data was sent externally.
 
-The rendered page contained none of these forbidden claims or features: Confirmed Failure, Confirmed Fault, Confirmed Anomaly, Known Failure Cause, Verified Health Score, Unvalidated RUL Prediction, AI Failure Diagnosis, Evidence Prompt Generator, Warning Threshold, or Failure Threshold.
-
-The page explicitly stated that FD001 contains simulated degradation observations and is not physical engine field measurement data, a failure diagnosis, a health score, or an RUL prediction.
+Screenshots show only the local application and safe source basenames/hashes/coordinates. They do not show private paths, credentials, secrets, or a bulk raw-source export.

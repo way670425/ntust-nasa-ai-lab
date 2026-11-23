@@ -115,6 +115,28 @@
         </aside>
       </section>
 
+      <section class="panel prompt-panel" aria-labelledby="prompt-title">
+        <div class="panel-heading prompt-heading">
+          <div>
+            <p class="eyebrow">Traceable evidence handoff</p>
+            <h2 id="prompt-title">Evidence Prompt Generator</h2>
+          </div>
+          <div class="prompt-actions">
+            <button id="generate-prompt" class="secondary-button" type="button" disabled>Refresh prompt</button>
+            <button id="copy-prompt" class="primary-button" type="button" disabled>Copy Prompt</button>
+          </div>
+        </div>
+        <p class="prompt-disclosure">Generated locally from the current validated API response. Nothing is sent to an AI service or any third party.</p>
+        <div class="classification-key" aria-label="Evidence classifications">
+          <span>OBSERVED · API evidence</span>
+          <span>DERIVED · stated formula</span>
+          <span>INFERRED · conditional only</span>
+          <span>UNKNOWN · unsupported</span>
+        </div>
+        <pre id="prompt-output" class="prompt-output" tabindex="0" aria-label="Evidence Prompt output">No valid prompt. Load a successful query and select an observation.</pre>
+        <p id="copy-feedback" class="copy-feedback" aria-live="polite">Prompt unavailable while data is loading, empty, or invalid.</p>
+      </section>
+
       <section class="panel table-panel" aria-labelledby="table-title">
         <div class="panel-heading">
           <div>
@@ -148,6 +170,6 @@
       <span>No thresholds, diagnosis, fault claims, or RUL predictions.</span>
     </footer>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=m4.1"></script>
   </body>
 </html>

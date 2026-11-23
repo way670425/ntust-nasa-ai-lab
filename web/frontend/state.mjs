@@ -175,17 +175,18 @@ export function resetForSplit(state, split) {
     end: null,
     history: null,
     selectedIndex: null,
+    prompt: null,
   };
 }
 
 export function resetForUnit(state, unit) {
   const start = unit.min_cycle;
   const end = Math.min(unit.max_cycle, start + 19);
-  return { ...state, unit, start, end, history: null, selectedIndex: null };
+  return { ...state, unit, start, end, history: null, selectedIndex: null, prompt: null };
 }
 
 export function refreshForSensor(state, sensor) {
-  return { ...state, sensor, history: null, selectedIndex: null };
+  return { ...state, sensor, history: null, selectedIndex: null, prompt: null };
 }
 
 export function mapHistory(history) {
@@ -211,6 +212,110 @@ export function evidenceFor(history, index) {
     end_cycle: history.end_cycle,
     ...observation.source_evidence,
   };
+}
+
+function formatNumber(value) {
+  return Number(value.toFixed(6)).toString();
+}
+
+export function evidencePromptIdentity(history, index) {
+  const observation = history?.observations?.[index];
+  if (!observation) return null;
+  return [
+    history.dataset_id,
+    history.source_type,
+    history.split,
+    history.unit_id,
+    history.sensor,
+    history.start_cycle,
+    history.end_cycle,
+    observation.cycle,
+    observation.source_evidence.source_sha256,
+    observation.source_evidence.source_physical_line_1_based,
+  ].join(":");
+}
+
+export function buildEvidencePrompt(history, index) {
+  const evidence = evidenceFor(history, index);
+  const identity = evidencePromptIdentity(history, index);
+  if (!evidence || !identity || !Array.isArray(history.observations) || history.observations.length === 0) {
+    throw new ContractError("A current validated History and selected observation are required");
+  }
+  const values = history.observations.map((observation) => observation.value);
+  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
+    throw new ContractError("Evidence Prompt values must be finite non-null numbers");
+  }
+  const selected = history.observations[index];
+  const count = values.length;
+  const sum = values.reduce((total, value) => total + value, 0);
+  const mean = sum / count;
+  const first = values[0];
+  const last = values[values.length - 1];
+  const delta = last - first;
+  const prompt = `FD001 EVIDENCE PROMPT
+Use only the classified evidence below. Do not add external baselines, thresholds, diagnoses, health scores, failure causes, or RUL values.
+
+[OBSERVED]
+- Dataset ID: ${history.dataset_id}
+- Source Type: ${history.source_type}
+- Split: ${history.split}
+- Unit ID: ${history.unit_id}
+- Sensor ID: ${history.sensor}
+- Cycle Range: ${history.start_cycle}-${history.end_cycle}
+- API Observation Count: ${count}
+- Selected Cycle: ${selected.cycle}
+- Selected Sensor Value: ${formatNumber(selected.value)} (source-defined / unspecified physical unit)
+- Source File: ${evidence.source_file}
+- Source SHA-256: ${evidence.source_sha256}
+- Source Physical Line (1-based): ${evidence.source_physical_line_1_based}
+- Parsed Row Index (0-based): ${evidence.parsed_row_index_0_based}
+
+[DERIVED]
+- Calculation source: only the ${count} current API observations for ${history.split} Unit ${history.unit_id}, ${history.sensor}, cycles ${history.start_cycle}-${history.end_cycle}.
+- Mean formula: Mean = sum(values) / N
+- Mean calculation: ${formatNumber(sum)} / ${count} = ${formatNumber(mean)}
+- Delta formula: Delta = last - first
+- Delta calculation: ${formatNumber(last)} - ${formatNumber(first)} = ${formatNumber(delta)}
+- These statistics are descriptive calculations, not an external baseline or a fault diagnosis.
+
+[INFERRED]
+- No verified fault, failure, anomaly, or failure cause is supported by this selected evidence alone.
+- Any interpretation of the descriptive Mean or Delta must remain conditional and must not be presented as a verified fact.
+
+[UNKNOWN]
+- Physical engine condition: unknown; not observed in this simulated dataset.
+- Failure cause: unknown; not provided by the API evidence.
+- Health score: unknown; not provided by the API evidence.
+- Warning or failure threshold: unknown; not provided by the API evidence.
+- RUL prediction/value for this query: unknown; do not fabricate one.
+
+[REQUIRED DISCLOSURES]
+- NASA C-MAPSS FD001 is a simulated turbofan degradation dataset, not physical equipment field measurement.
+- TRAIN contains simulated complete degradation trajectories.
+- TEST contains truncated simulated trajectories; its last observed Cycle is not a failure time.
+- TEST_RUL is an independent label at the last observed Cycle, not a Sensor Observation.
+- Sensor trend and derived statistics are not a verified fault diagnosis.
+- Do not insert an RUL value unless a validated API response explicitly provides it.
+
+[REQUEST]
+Summarize the evidence while preserving the OBSERVED, DERIVED, INFERRED, and UNKNOWN boundaries. Cite the selected source basename, SHA-256, physical line, and parsed row. State all limitations explicitly.`;
+
+  return {
+    identity,
+    text: prompt,
+    statistics: { count, sum, mean, first, last, delta },
+  };
+}
+
+export async function copyPromptToClipboard(promptState, displayedText, activeIdentity, clipboard) {
+  if (!promptState || promptState.identity !== activeIdentity || promptState.text !== displayedText) {
+    throw new ContractError("The displayed Evidence Prompt is stale or invalid");
+  }
+  if (!clipboard || typeof clipboard.writeText !== "function") {
+    throw new ContractError("Clipboard API is unavailable");
+  }
+  await clipboard.writeText(promptState.text);
+  return promptState.text;
 }
 
 export function errorLabel(status) {

@@ -1,8 +1,11 @@
 import {
   ContractError,
   RequestGate,
+  buildEvidencePrompt,
+  copyPromptToClipboard,
   errorLabel,
   evidenceFor,
+  evidencePromptIdentity,
   mapHistory,
   parseCatalog,
   parseHealth,
@@ -12,7 +15,7 @@ import {
   resetForSplit,
   resetForUnit,
   validateCycleRange,
-} from "./state.mjs";
+} from "./state.mjs?v=m4.1";
 
 class ApiError extends Error {
   constructor(status, detail) {
@@ -41,6 +44,10 @@ const elements = {
   pointCount: document.querySelector("#point-count"),
   tableBody: document.querySelector("#observation-body"),
   selectedCycle: document.querySelector("#selected-cycle"),
+  generatePrompt: document.querySelector("#generate-prompt"),
+  copyPrompt: document.querySelector("#copy-prompt"),
+  promptOutput: document.querySelector("#prompt-output"),
+  copyFeedback: document.querySelector("#copy-feedback"),
 };
 
 let state = {
@@ -53,6 +60,7 @@ let state = {
   end: null,
   history: null,
   selectedIndex: null,
+  prompt: null,
 };
 
 const unitGate = new RequestGate();
@@ -104,6 +112,7 @@ function setOptions(select, values, selectedValue, formatter = (value) => value)
 }
 
 function clearData(message = "No observations loaded") {
+  invalidatePrompt("Prompt unavailable while data is loading, empty, or invalid.");
   state.history = null;
   state.selectedIndex = null;
   elements.pointCount.textContent = "0 observations";
@@ -113,6 +122,28 @@ function clearData(message = "No observations loaded") {
   elements.tableBody.innerHTML = `<tr class="placeholder-row"><td colspan="6">${message}</td></tr>`;
   clearEvidence();
   drawChart();
+}
+
+function invalidatePrompt(message) {
+  state.prompt = null;
+  elements.promptOutput.textContent = "No valid prompt. Load a successful query and select an observation.";
+  elements.generatePrompt.disabled = true;
+  elements.copyPrompt.disabled = true;
+  elements.copyFeedback.className = "copy-feedback";
+  elements.copyFeedback.textContent = message;
+}
+
+function updatePrompt() {
+  try {
+    state.prompt = buildEvidencePrompt(state.history, state.selectedIndex);
+    elements.promptOutput.textContent = state.prompt.text;
+    elements.generatePrompt.disabled = false;
+    elements.copyPrompt.disabled = false;
+    elements.copyFeedback.className = "copy-feedback";
+    elements.copyFeedback.textContent = "Prompt is current and ready to copy locally.";
+  } catch (error) {
+    invalidatePrompt(error.message || "Evidence Prompt is unavailable.");
+  }
 }
 
 function clearEvidence() {
@@ -268,6 +299,7 @@ function selectObservation(index, focusRow = true) {
     const value = values[node.dataset.evidence];
     node.textContent = value === null || value === undefined ? "N/A" : String(value);
   });
+  updatePrompt();
   drawChart();
   if (focusRow) {
     elements.tableBody.querySelector(`tr[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
@@ -383,6 +415,25 @@ elements.sensor.addEventListener("change", () => {
 elements.query.addEventListener("click", loadHistory);
 elements.start.addEventListener("change", loadHistory);
 elements.end.addEventListener("change", loadHistory);
+elements.generatePrompt.addEventListener("click", updatePrompt);
+elements.copyPrompt.addEventListener("click", async () => {
+  elements.copyFeedback.className = "copy-feedback";
+  elements.copyFeedback.textContent = "Copying the current prompt…";
+  try {
+    const activeIdentity = evidencePromptIdentity(state.history, state.selectedIndex);
+    await copyPromptToClipboard(
+      state.prompt,
+      elements.promptOutput.textContent,
+      activeIdentity,
+      navigator.clipboard,
+    );
+    elements.copyFeedback.className = "copy-feedback success";
+    elements.copyFeedback.textContent = "Copied current Evidence Prompt to clipboard.";
+  } catch (error) {
+    elements.copyFeedback.className = "copy-feedback error";
+    elements.copyFeedback.textContent = `Copy failed: ${error.message || "Clipboard write was rejected."}`;
+  }
+});
 window.addEventListener("resize", drawChart);
 
 async function bootstrap() {

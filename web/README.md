@@ -47,11 +47,27 @@ Open `http://127.0.0.1:8001/`. The proxy serves only the static frontend and for
 
 The interface dynamically loads Splits, Units, Sensors, cycle ranges, observations, and provenance from the API. The Canvas chart draws only returned observations with straight line segments—no interpolation, smoothing, or thresholds. Chart points and table rows share the same observation index and update the selected evidence together. AbortController and request identities prevent stale responses from overwriting a newer selection.
 
+### Evidence Prompt Generator
+
+The Prompt panel is generated locally from only the current validated History response and selected observation. It separates:
+
+- `OBSERVED`: dataset/query identity, selected value and source provenance;
+- `DERIVED`: Mean and Delta with formulas, range and observation count;
+- `INFERRED`: explicitly conditional, unsupported conclusions only;
+- `UNKNOWN`: condition, cause, health score, thresholds and RUL not supplied by evidence.
+
+Selection or query changes invalidate the previous Prompt until the new request succeeds. Loading, empty and error states cannot produce or copy a valid Prompt. Copy uses the local Clipboard API, checks the active Prompt identity and displayed text before writing, and never sends content to an AI API or third party.
+
+The Prompt discloses that FD001 is simulated rather than field measurement, TRAIN is a complete simulated trajectory, TEST is truncated and its last observed Cycle is not failure time, and TEST_RUL is a separate label rather than a Sensor Observation.
+
 Frontend automated tests:
 
 ```sh
-node --test web/frontend/tests/state.test.mjs
+node --test web/frontend/tests/state.test.mjs web/frontend/tests/evidence_prompt.test.mjs
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s web/frontend/tests -p 'test_*.py' -v
+PYTHONDONTWRITEBYTECODE=1 python3 web/frontend/tests/verify_api_source.py
 ```
 
 `web/frontend/tests/uat_error_harness.py` is a TEST_ONLY Browser UAT fixture for verifying the required 400, 404, 503, and connection-failure UI labels. It is not a formal data source and is never used as source-integrity evidence.
+
+M4 verification artifacts are documented in `web/browser_uat_report.md`, `web/browser_evidence/browser_observations.md`, and `web/api_source_comparison.md`.
