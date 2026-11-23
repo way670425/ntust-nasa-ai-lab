@@ -1,0 +1,240 @@
+{
+  "browser": "Google Chrome 157.0.8103.80",
+  "cases": [
+    {
+      "action": "Open real local website in Google Chrome",
+      "actual": "Source Validated and Success visible",
+      "case_id": "UAT_01",
+      "evidence": "web/m5/browser_evidence/r2_initial_website.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Website loads normally",
+      "query": "default",
+      "result": "PASS"
+    },
+    {
+      "action": "Inspect Split and Unit selectors",
+      "actual": "TRAIN Unit 1 selected",
+      "case_id": "UAT_02",
+      "evidence": "web/m5/browser_evidence/r2_initial_website.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "TRAIN Unit 1",
+      "query": "split=TRAIN&unit=1",
+      "result": "PASS"
+    },
+    {
+      "action": "Inspect Sensor selector",
+      "actual": "sensor_7 selected",
+      "case_id": "UAT_03",
+      "evidence": "web/m5/browser_evidence/r2_initial_website.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "sensor_7",
+      "query": "sensor=sensor_7",
+      "result": "PASS"
+    },
+    {
+      "action": "Inspect Cycle controls",
+      "actual": "Cycle 1-20 selected",
+      "case_id": "UAT_04",
+      "evidence": "web/m5/browser_evidence/r2_initial_website.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Cycle 1-20",
+      "query": "start=1&end=20",
+      "result": "PASS"
+    },
+    {
+      "action": "Inspect rendered Sensor Trend",
+      "actual": "Browser count 20; API count 20",
+      "case_id": "UAT_05",
+      "evidence": "web/m5/browser_evidence/r2_train_unit_1_sensor_7_cycles_1_20.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "20 API observations",
+      "query": "TRAIN/1/sensor_7/1-20",
+      "result": "PASS"
+    },
+    {
+      "action": "Count Observation Table data rows",
+      "actual": "20 Browser rows",
+      "case_id": "UAT_06",
+      "evidence": "web/m5/browser_evidence/r2_train_unit_1_sensor_7_cycles_1_20.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "20 rows matching API",
+      "query": "TRAIN/1/sensor_7/1-20",
+      "result": "PASS"
+    },
+    {
+      "action": "Click final Chart data point",
+      "actual": "Cycle 20 evidence and Prompt selected",
+      "case_id": "UAT_07",
+      "evidence": "web/m5/browser_evidence/r2_selected_chart_point.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Evidence and Prompt update",
+      "query": "cycle=20",
+      "result": "PASS"
+    },
+    {
+      "action": "Click Cycle 5 Table row",
+      "actual": "Cycle 5 evidence and Prompt selected",
+      "case_id": "UAT_08",
+      "evidence": "web/m5/browser_evidence/r2_selected_table_row.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Evidence and Prompt update",
+      "query": "cycle=5",
+      "result": "PASS"
+    },
+    {
+      "action": "Switch TRAIN to TEST",
+      "actual": "TEST evidence and Prompt contain only test_FD001.txt",
+      "case_id": "UAT_09",
+      "evidence": "r2_changed_unit_sensor_cycle.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "No stale TRAIN state",
+      "query": "split=TEST",
+      "result": "PASS"
+    },
+    {
+      "action": "Switch to TEST Unit 2",
+      "actual": "Unit 2 range 1-20",
+      "case_id": "UAT_10",
+      "evidence": "r2_changed_unit_sensor_cycle.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Unit and Cycle range reset",
+      "query": "split=TEST&unit=2",
+      "result": "PASS"
+    },
+    {
+      "action": "Switch to sensor_8",
+      "actual": "Evidence and Prompt identify sensor_8",
+      "case_id": "UAT_11",
+      "evidence": "r2_changed_unit_sensor_cycle.png",
+      "execution_time": "2026-11-23T11:33:05+08:00",
+      "expected": "Chart/Table/Prompt synchronized",
+      "query": "sensor=sensor_8",
+      "result": "PASS"
+    },
+    {
+      "action": "Change valid Cycle range",
+      "actual": "5 Browser rows; Prompt range 2-6",
+      "case_id": "UAT_12",
+      "evidence": "web/m5/browser_evidence/r2_changed_unit_sensor_cycle.png",
+      "execution_time": "2026-11-23T11:33:06+08:00",
+      "expected": "5 observations and current range",
+      "query": "TEST/Unit2/sensor_8/2-6",
+      "result": "PASS"
+    },
+    {
+      "action": "Enter invalid Cycle range 20/1",
+      "actual": "Exact validation; 0 Chart/Table; N/A Evidence; disabled Copy; 0 invalid requests",
+      "case_id": "UAT_13",
+      "evidence": "web/m5/browser_evidence/r2_invalid_query_20_1.png",
+      "execution_time": "2026-11-23T11:33:06+08:00",
+      "expected": "Clear stale state; disable Prompt actions; no invalid request",
+      "query": "start=20&end=1",
+      "result": "PASS"
+    },
+    {
+      "action": "Inject isolated History HTTP 400, 404 and 503 after valid data",
+      "actual": "400:Query Validation Error; 404:Observation Not Found; 503:Source Not Validated",
+      "case_id": "UAT_14",
+      "evidence": "web/m5/browser_evidence/r2_error_400_404_503.png",
+      "execution_time": "2026-11-23T11:33:06+08:00",
+      "expected": "Correct classification and stale-state clearing",
+      "query": "TEST_ONLY UI classification; real API contract checked separately",
+      "result": "PASS"
+    },
+    {
+      "action": "Stop the verified API PID and query through the still-running Frontend",
+      "actual": "PID 59558 stopped; Connection Error; Frontend HTTP 200",
+      "case_id": "UAT_15",
+      "evidence": "web/m5/browser_evidence/r2_api_disconnected.png",
+      "execution_time": "2026-11-23T11:33:07+08:00",
+      "expected": "Connection Error and cleared stale state",
+      "query": "TRAIN/1/sensor_7/1-20",
+      "result": "PASS"
+    },
+    {
+      "action": "Restart real API and repeat valid query",
+      "actual": "PID 60051; health validated/read-only; 20 rows; Copy enabled",
+      "case_id": "UAT_16",
+      "evidence": "web/m5/browser_evidence/r2_api_recovered.png",
+      "execution_time": "2026-11-23T11:33:07+08:00",
+      "expected": "Validated read-only API and 20-row recovery",
+      "query": "TRAIN/1/sensor_7/1-20",
+      "result": "PASS"
+    },
+    {
+      "action": "Open isolated TEST_ONLY optional-null, required-null, missing, non-finite and invalid-source fixtures",
+      "actual": "optional_null:Success/value554.36; required_null:Source Not Validated/0 rows; missing_required:Source Not Validated/0 rows; non_finite:Source Not Validated/0 rows; invalid_source:Source Not Validated/0 rows",
+      "case_id": "UAT_17",
+      "evidence": "web/m5/browser_evidence/r2_null_required_error.png",
+      "execution_time": "2026-11-23T11:33:08+08:00",
+      "expected": "No zero-fill/interpolation/fabrication; invalid required data rejected",
+      "query": "TEST_ONLY only",
+      "result": "PASS"
+    },
+    {
+      "action": "Validate visible Evidence Prompt against active API selection and provenance",
+      "actual": "All required fragments present; Mean/Delta reproducible",
+      "case_id": "UAT_18",
+      "evidence": "r2_evidence_prompt_copy.png",
+      "execution_time": "2026-11-23T11:33:08+08:00",
+      "expected": "Identity, provenance, four classes, M2 scope and formulas match",
+      "query": "TRAIN/1/sensor_7/1-20 selected Cycle 1",
+      "result": "PASS"
+    },
+    {
+      "action": "Click Copy Prompt and read Browser Clipboard",
+      "actual": "visible_chars=5580 clipboard_chars=5580 equality=true",
+      "case_id": "UAT_19",
+      "evidence": "web/m5/browser_evidence/r2_evidence_prompt_copy.png",
+      "execution_time": "2026-11-23T11:33:09+08:00",
+      "expected": "Exact content equality",
+      "query": "current visible Prompt",
+      "result": "PASS"
+    },
+    {
+      "action": "Delay sensor_7 request, switch rapidly to sensor_8, then release old request",
+      "actual": "Evidence and Prompt remained sensor_8",
+      "case_id": "UAT_20",
+      "evidence": "web/m5/browser_evidence/r2_stale_response_prevented.png",
+      "execution_time": "2026-11-23T11:33:10+08:00",
+      "expected": "Old response cannot overwrite new",
+      "query": "old=sensor_7 new=sensor_8",
+      "result": "PASS"
+    },
+    {
+      "action": "Inspect Prompt inference boundaries after current sensor_8 query",
+      "actual": "All forbidden checks false; Health score and RUL explicitly UNKNOWN",
+      "case_id": "UAT_21",
+      "evidence": "web/m5/browser_evidence/r2_stale_response_prevented.png",
+      "execution_time": "2026-11-23T11:33:10+08:00",
+      "expected": "No fabricated baseline, diagnosis, health score or RUL",
+      "query": "current sensor_8 Prompt",
+      "result": "PASS"
+    }
+  ],
+  "execution_end": "2026-11-23T11:33:10+08:00",
+  "execution_start": "2026-11-23T11:33:05+08:00",
+  "failed": 0,
+  "fixture_boundary": "TEST_ONLY fixtures were used only for UI error classification and Null/Missing handling",
+  "history_requests_observed": 21,
+  "invalid_20_1_requests": 0,
+  "passed": 21,
+  "restarted_api_pid": 60051,
+  "restarted_api_running": true,
+  "result": "PASS",
+  "screenshot_count": 12,
+  "screenshots": [
+    "web/m5/browser_evidence/r2_initial_website.png",
+    "web/m5/browser_evidence/r2_train_unit_1_sensor_7_cycles_1_20.png",
+    "web/m5/browser_evidence/r2_selected_chart_point.png",
+    "web/m5/browser_evidence/r2_selected_table_row.png",
+    "web/m5/browser_evidence/r2_changed_unit_sensor_cycle.png",
+    "web/m5/browser_evidence/r2_invalid_query_20_1.png",
+    "web/m5/browser_evidence/r2_error_400_404_503.png",
+    "web/m5/browser_evidence/r2_api_disconnected.png",
+    "web/m5/browser_evidence/r2_api_recovered.png",
+    "web/m5/browser_evidence/r2_null_required_error.png",
+    "web/m5/browser_evidence/r2_evidence_prompt_copy.png",
+    "web/m5/browser_evidence/r2_stale_response_prevented.png"
+  ]
+}
