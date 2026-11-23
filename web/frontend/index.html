@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Read-only NASA C-MAPSS FD001 Sensor trend and source evidence explorer." />
+    <title>FD001 Engine Health Analysis</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">NASA C-MAPSS · FD001</p>
+        <h1>FD001 Engine Health Analysis</h1>
+        <p class="subtitle">Traceable Sensor observations from a validated, read-only simulated turbofan dataset.</p>
+      </div>
+      <div class="header-badges" aria-label="Dataset status">
+        <span class="badge badge-simulated">Simulated Turbofan Dataset</span>
+        <span class="badge badge-readonly">Read-Only Source</span>
+        <span class="badge" id="validation-badge">Checking source…</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="notice" aria-label="Interpretation boundary">
+        <strong>Evidence boundary</strong>
+        <span>NASA C-MAPSS FD001 contains simulated degradation observations. It is not physical engine field measurement data, a failure diagnosis, a health score, or an RUL prediction.</span>
+      </section>
+
+      <section class="controls-panel" aria-labelledby="controls-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Query controls</p>
+            <h2 id="controls-title">Select an observation window</h2>
+          </div>
+          <button id="query-button" class="primary-button" type="button">Load observations</button>
+        </div>
+        <div class="controls-grid">
+          <label>
+            <span>Dataset Split</span>
+            <select id="split-select" aria-label="Dataset Split" disabled></select>
+          </label>
+          <label>
+            <span>Engine Unit</span>
+            <select id="unit-select" aria-label="Engine Unit" disabled></select>
+          </label>
+          <label>
+            <span>Sensor</span>
+            <select id="sensor-select" aria-label="Sensor" disabled></select>
+          </label>
+          <label>
+            <span>Start Cycle</span>
+            <input id="start-cycle" aria-label="Start Cycle" type="number" inputmode="numeric" min="1" step="1" disabled />
+          </label>
+          <label>
+            <span>End Cycle</span>
+            <input id="end-cycle" aria-label="End Cycle" type="number" inputmode="numeric" min="1" step="1" disabled />
+          </label>
+          <div class="range-card" aria-live="polite">
+            <span>Available range</span>
+            <strong id="available-range">N/A</strong>
+            <small id="observation-total">No Unit selected</small>
+          </div>
+        </div>
+        <p id="validation-message" class="validation-message" role="alert" hidden></p>
+      </section>
+
+      <section id="status-panel" class="status-panel loading" aria-live="polite">
+        <span class="status-icon" aria-hidden="true"></span>
+        <div>
+          <strong id="status-title">Loading</strong>
+          <p id="status-detail">Validating the source and loading the API Catalog.</p>
+        </div>
+      </section>
+
+      <section class="analysis-grid">
+        <article class="panel chart-panel" aria-labelledby="trend-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Observed series</p>
+              <h2 id="trend-title">Sensor Trend</h2>
+            </div>
+            <span id="point-count" class="metric-chip">0 observations</span>
+          </div>
+          <p id="chart-title" class="chart-title">Select data to display a Sensor trend.</p>
+          <div class="chart-wrap">
+            <canvas id="trend-chart" width="900" height="420" aria-label="Cycle by Sensor Value trend chart"></canvas>
+            <div id="chart-empty" class="empty-overlay">No observations loaded</div>
+          </div>
+          <div class="axis-label x-axis">Cycle</div>
+          <div class="chart-legend"><span></span>Sensor Value · source-defined / unspecified unit</div>
+        </article>
+
+        <aside class="panel evidence-panel" aria-labelledby="evidence-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Source provenance</p>
+              <h2 id="evidence-title">Selected Evidence</h2>
+            </div>
+            <span id="selected-cycle" class="metric-chip">No point</span>
+          </div>
+          <dl id="evidence-list" class="evidence-list">
+            <div><dt>Dataset ID</dt><dd data-evidence="dataset_id">N/A</dd></div>
+            <div><dt>Source Type</dt><dd data-evidence="source_type">N/A</dd></div>
+            <div><dt>Split</dt><dd data-evidence="split">N/A</dd></div>
+            <div><dt>Unit ID</dt><dd data-evidence="unit_id">N/A</dd></div>
+            <div><dt>Sensor</dt><dd data-evidence="sensor">N/A</dd></div>
+            <div><dt>Start Cycle</dt><dd data-evidence="start_cycle">N/A</dd></div>
+            <div><dt>End Cycle</dt><dd data-evidence="end_cycle">N/A</dd></div>
+            <div class="wide"><dt>Source File</dt><dd data-evidence="source_file">N/A</dd></div>
+            <div class="wide"><dt>Source SHA-256</dt><dd class="hash" data-evidence="source_sha256">N/A</dd></div>
+            <div><dt>Physical Line · 1-based</dt><dd data-evidence="source_physical_line_1_based">N/A</dd></div>
+            <div><dt>Parsed Row · 0-based</dt><dd data-evidence="parsed_row_index_0_based">N/A</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="panel table-panel" aria-labelledby="table-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Raw API observations</p>
+            <h2 id="table-title">Observation Table</h2>
+          </div>
+          <p class="table-hint">Select a row or chart point to inspect its source evidence.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Cycle</th>
+                <th scope="col">Sensor</th>
+                <th scope="col">Value</th>
+                <th scope="col">Source File</th>
+                <th scope="col">Physical Line</th>
+                <th scope="col">Parsed Row</th>
+              </tr>
+            </thead>
+            <tbody id="observation-body">
+              <tr class="placeholder-row"><td colspan="6">No observations loaded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>FD001 · validated local source</span>
+      <span>No thresholds, diagnosis, fault claims, or RUL predictions.</span>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

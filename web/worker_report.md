@@ -1,72 +1,100 @@
-# Web Own Worker R1 Execution Report
+# Web Own Worker M3-B Execution Report
 
-- Type: `WORKER_TO_BRAIN_REWORK_RETURN`
-- Work item: `WO-M3-WEB-API-001-R1`
-- Parent work item: `WO-M3-WEB-API-001`
+- Type: `WORKER_TO_BRAIN_RETURN`
+- Work item: `WO-M3-WEB-FRONTEND-001`
 - From: Web Own Worker
 - To: STUDENT-WEB Brain
-- Execution date: 2026-11-22 (Asia/Taipei)
+- Execution date: 2026-11-23 (Asia/Taipei)
 - Worker execution: `SUCCESS` (candidate delivery; Brain verification required)
 - GitHub AGENTS read: `TRUE`
-- Base commit: `a62f0fa6897d2aae2d84d7f6930d1b268f003c26`
+- Base commit: `1be16dbda1a8f457d71ac734af3f4ffe1f82af47`
 - Result commit: the Git commit containing this report; full SHA is reported in the external Worker return after push
+- GitHub Push: recorded in the external Worker return after delivery
 - Worker Gate declaration: `PROHIBITED`
 
-## R1 scope and results
+## Worker verification status
 
 | Check | Worker result |
 |---|---|
-| Strict query validation | PASS |
-| Complete Catalog schema | PASS |
-| Invalid Sensor tests | PASS |
-| API regression | PASS |
-| Source-row verification | PASS |
-| Source-hash verification | PASS |
+| Frontend build | PASS |
+| Real API integration | PASS |
+| Split selector | PASS |
+| Unit selector | PASS |
+| Sensor selector | PASS |
+| Cycle selector | PASS |
+| Trend Chart | PASS |
+| Observation Table | PASS |
+| Source Evidence | PASS |
+| Error handling | PASS |
 | Null policy | PASS |
-| Error contract | PASS |
-| Read-only verification | PASS |
+| Automated tests | PASS |
+| Browser UAT | PASS |
 
-The changes are limited to the three authorized corrections:
+## Implementation boundary
 
-1. `/api/health` and `/api/catalog` reject all query parameters; `/api/units` permits only `split`; `/api/history` permits only `split`, `unit`, `sensor`, `start`, and `end`. Unknown, repeated, or missing required parameters return HTTP 400 with `INVALID_QUERY_VALUE`.
-2. Catalog `observation_schema` now returns all 26 source fields in one-based source-column order. Every entry contains `name`, `data_type`, `nullable`, `source_column_position`, and `query_semantics`. All fields are non-nullable; physical units remain source-defined or unspecified; TEST_RUL remains an independent positional label rather than a Sensor History Split.
-3. Invalid Sensor selectors distinguish malformed/non-integer values (`INVALID_QUERY_VALUE`) from integer IDs outside 1–21 (`INVALID_SENSOR`). Normal `sensor=7` behavior is unchanged.
+- The frontend is buildless HTML/CSS/ES modules with no third-party runtime dependency.
+- `web/frontend_server.py` serves the static frontend on `127.0.0.1:8001` and proxies only same-origin `/api/*` GET requests to the accepted API on `127.0.0.1:8000`.
+- No M3-A API contract or Loader file was modified.
+- Every production Chart point, Table row, and Evidence field is parsed from the real M3-A response.
+- The chart uses straight segments between returned observations only; no imputation, smoothing, warning/failure threshold, diagnosis, health score, or RUL feature was added.
+- Request identities plus AbortController prevent stale asynchronous responses from replacing current selections.
 
-## Regression and source evidence
+## Automated test evidence
 
-The required TRAIN Unit 1, Sensor 7, Cycle 1–20 query returned 20 observations. A test-side parser independently compared all 20 source values, cycles, source basenames, SHA-256 values, physical line numbers, and parsed row indexes. Comparison result: 20/20 matched. Cycle 1 mapped to physical line 1 / parsed row 0; Cycle 20 mapped to physical line 20 / parsed row 19. No cross-Split, cross-Unit, or out-of-range observations were returned.
+Commands and results:
 
-Source SHA-256 values after the R1 test run:
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s web/tests -v
+# Exit 0: 14 run, 14 passed, 0 failed, 0 errors
+
+node --test web/frontend/tests/state.test.mjs
+# Exit 0: 7 run, 7 passed, 0 failed
+
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s web/frontend/tests -p 'test_*.py' -v
+# Exit 0: 4 run, 4 passed, 0 failed, 0 errors
+```
+
+Automated total: 25 passed, 0 failed, 0 errors.
+
+Coverage includes API parsing, selector resets, Split/Unit/Sensor changes, cycle validation, trend mapping, Table/Chart index consistency, Evidence mapping, null/non-finite rejection, 400/404/503/connection labels, stale-response cancellation, real API regressions, source-row verification, same-origin proxying, and safe connection failure.
+
+The required real query `/api/history?split=train&unit=1&sensor=7&start=1&end=20` returned 20 observations and the existing independent parser verified 20/20 Sensor values, source basenames, SHA-256 values, physical lines, and parsed row indexes.
+
+Source hashes after all automated tests and Browser UAT:
 
 - TRAIN: `963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8`
 - TEST: `3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851`
 - TEST_RUL: `a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca`
 
-## Test evidence
+## Browser UAT evidence
 
-Command:
+- Browser: Google Chrome 157.0.8103.80
+- Cases: 12 run, 12 passed, 0 failed
+- UAT report: `web/browser_uat_report.md`
+- Browser evidence: `web/browser_evidence/browser_observations.md`
 
-```sh
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s web/tests -v
-```
-
-Result: exit code `0`; 14 tests run; 14 passed; 0 failed; 0 errors.
-
-The suite covers the five original endpoint calls, eight strict-parameter cases, all 26 Catalog fields, seven invalid-Sensor cases, the normal Sensor 7 case, source hash and row verification, null handling, safe error responses, TRAIN/TEST isolation, missing/tampered/malformed sources, and POST/PUT/PATCH/DELETE rejection.
+The first visual inspection identified a Chart loading overlay that remained visible after success. The CSS hidden state was corrected, the page was reloaded, and the full 12-case UAT was completed against the corrected frontend. Error classification used the committed TEST_ONLY harness; real data integration and provenance used the accepted production API.
 
 ## Changed files
 
-- `web/fd001_api/app.py`
-- `web/tests/test_api.py`
 - `web/README.md`
+- `web/frontend_server.py`
+- `web/frontend/index.html`
+- `web/frontend/app.js`
+- `web/frontend/state.mjs`
+- `web/frontend/styles.css`
+- `web/frontend/tests/state.test.mjs`
+- `web/frontend/tests/test_frontend_server.py`
+- `web/frontend/tests/uat_error_harness.py`
+- `web/browser_uat_report.md`
+- `web/browser_evidence/browser_observations.md`
 - `web/worker_report.md`
 
-No Loader, Research, FD001 source, Raw Index, unrelated code, or private configuration was modified or staged.
+No Research, data, source API, Loader, Raw Index, private configuration, or unrelated file was modified.
 
-## STOP status
+## STOP status and boundary
 
 - `STOP_IF_TRIGGERED: NONE`
-- `GITHUB_PUSH`: recorded in the external Worker return after delivery
+- Existing untracked local Research/data artifacts were preserved and excluded from staging.
+- This report does not declare M3-B Gate PASS and does not authorize or implement M4 Evidence Prompt Generator.
 - `RETURN_TO: STUDENT-WEB Brain`
-
-This report is Worker-generated execution evidence. It is not an M3-A Gate decision and does not authorize M3-B.
