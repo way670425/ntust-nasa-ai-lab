@@ -190,6 +190,18 @@ function validateInputs() {
   return result;
 }
 
+function showInvalidCycleRange(validation) {
+  historyGate.cancel();
+  clearData(validation.message);
+  setStatus("error", "Query Validation Error", validation.message);
+  elements.query.disabled = !state.unit;
+}
+
+function invalidateOnInvalidCycleInput() {
+  const validation = validateInputs();
+  if (!validation.valid) showInvalidCycleRange(validation);
+}
+
 async function loadUnits() {
   historyGate.cancel();
   clearData("Loading Units for the selected Split…");
@@ -221,7 +233,10 @@ async function loadUnits() {
 
 async function loadHistory() {
   const validation = validateInputs();
-  if (!validation.valid) return;
+  if (!validation.valid) {
+    showInvalidCycleRange(validation);
+    return;
+  }
   state.start = validation.start;
   state.end = validation.end;
   clearData("Loading observations for the active query…");
@@ -413,6 +428,8 @@ elements.sensor.addEventListener("change", () => {
 });
 
 elements.query.addEventListener("click", loadHistory);
+elements.start.addEventListener("input", invalidateOnInvalidCycleInput);
+elements.end.addEventListener("input", invalidateOnInvalidCycleInput);
 elements.start.addEventListener("change", loadHistory);
 elements.end.addEventListener("change", loadHistory);
 elements.generatePrompt.addEventListener("click", updatePrompt);
